@@ -1,14 +1,11 @@
-# utils/guards.py
-
 import streamlit as st
-from utils.auth import get_current_user
 
-def login_required(func):
-    """Decorator to ensure user is logged in before accessing a page."""
-    def wrapper(*args, **kwargs):
-        user = get_current_user()
-        if not user:
-            st.warning("You must log in first.")
-            return
-        return func(*args, **kwargs)
-    return wrapper
+def guard_role(*roles):
+    u = st.session_state.get("user")
+    if not u:
+        st.error("Please log in from the home page.")
+        st.stop()
+    if roles and u.get("role") not in roles:
+        st.warning(f"Access restricted to: {', '.join(roles)}")
+        st.stop()
+    return u

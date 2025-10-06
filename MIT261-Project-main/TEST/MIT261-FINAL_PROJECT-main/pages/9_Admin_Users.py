@@ -95,7 +95,7 @@ with tabs[0]:
     if st.session_state["last_created_accounts"]:
         df = pd.DataFrame(st.session_state["last_created_accounts"])
         st.warning("Copy or download these temporary passwords now — they are NOT stored in plaintext.")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width='stretch')
         st.download_button(
             "Download CSV",
             df.to_csv(index=False).encode("utf-8"),
@@ -119,7 +119,7 @@ with tabs[1]:
     if st.session_state["last_created_accounts"]:
         df = pd.DataFrame(st.session_state["last_created_accounts"])
         st.warning("Copy or download these temporary passwords now — they are NOT stored in plaintext.")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width='stretch')
         st.download_button(
             "Download CSV",
             df.to_csv(index=False).encode("utf-8"),
@@ -143,7 +143,7 @@ with tabs[2]:
     if st.session_state["last_created_accounts"]:
         df = pd.DataFrame(st.session_state["last_created_accounts"])
         st.warning("Copy or download these temporary passwords now — they are NOT stored in plaintext.")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width='stretch')
         st.download_button(
             "Download CSV",
             df.to_csv(index=False).encode("utf-8"),
@@ -186,7 +186,7 @@ with tabs[3]:
         st.write(f"Found in enrollments: {len(studs)} · Missing in Users: {len(studs_missing)}")
         if studs_missing:
             dfm = pd.DataFrame(studs_missing)
-            st.dataframe(dfm, use_container_width=True, hide_index=True, height=240)
+            st.dataframe(dfm, width='stretch', hide_index=True, height=240)
             if st.button("Create missing student accounts", type="primary", key="mk_students"):
                 created = []
                 for d in studs_missing:
@@ -205,7 +205,7 @@ with tabs[3]:
         st.write(f"Found in enrollments: {len(teach)} · Missing in Users: {len(teach_missing)}")
         if teach_missing:
             dft = pd.DataFrame(teach_missing)
-            st.dataframe(dft, use_container_width=True, hide_index=True, height=240)
+            st.dataframe(dft, width='stretch', hide_index=True, height=240)
             if st.button("Create missing teacher accounts", type="primary", key="mk_teachers_enr"):
                 created = []
                 for d in teach_missing:
@@ -220,7 +220,7 @@ with tabs[3]:
     if st.session_state["last_created_accounts"]:
         df = pd.DataFrame(st.session_state["last_created_accounts"])
         st.warning("Copy or download these temporary passwords now — they are NOT stored in plaintext.")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width='stretch')
         st.download_button(
             "Download newly-created accounts (CSV)",
             df.to_csv(index=False).encode("utf-8"),
@@ -277,7 +277,7 @@ with tabs[4]:
 
     edited = st.data_editor(
         view,
-        use_container_width=True,
+        width='stretch',
         hide_index=True,
         num_rows="fixed",
         column_config={
@@ -334,7 +334,7 @@ with tabs[4]:
     if st.session_state["last_created_accounts"]:
         df_new = pd.DataFrame(st.session_state["last_created_accounts"])
         st.warning("Copy or download these temporary passwords now — they are NOT stored in plaintext.")
-        st.dataframe(df_new, use_container_width=True)
+        st.dataframe(df_new, width='stretch')
         st.download_button(
             "Download issued temps (CSV)",
             df_new.to_csv(index=False).encode("utf-8"),

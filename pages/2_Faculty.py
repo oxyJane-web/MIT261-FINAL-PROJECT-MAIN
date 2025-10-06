@@ -127,8 +127,8 @@ def load_enrollments_df(teacher_email: Optional[str]) -> pd.DataFrame:
         q = {"teacher.email": teacher_email}
 
     proj = {
-        "grade": 1,
-        "remark": 1,
+        "term.grade": 1,
+        "term.remark": 1,
         "term.school_year": 1,
         "term.semester": 1,
         "student.name": 1,
@@ -138,7 +138,7 @@ def load_enrollments_df(teacher_email: Optional[str]) -> pd.DataFrame:
         "teacher.email": 1,
         "teacher.name": 1,
         "program.program_code": 1,
-        "section": 1,
+        "term.section": 1,
     }
     rows = list(col("enrollments").find(q, proj))
 
@@ -153,13 +153,13 @@ def load_enrollments_df(teacher_email: Optional[str]) -> pd.DataFrame:
             "student_name": stu.get("name"),
             "subject_code": sub.get("code"),
             "subject_title": sub.get("title"),
-            "grade": _to_num_grade(e.get("grade")),
-            "remark": e.get("remark"),
+            "grade": _to_num_grade(term.get("grade")),
+            "remark": term.get("remark"),
             "term_label": _term_label(term.get("school_year"), term.get("semester")),
             "teacher_email": _nemail(tch.get("email")),
             "teacher_name": tch.get("name"),
             "program_code": prog.get("program_code"),
-            "section": e.get("section"),
+            "section": term.get("section"),
         }
 
     df = pd.DataFrame([flatten(r) for r in rows]) if rows else pd.DataFrame(
@@ -276,7 +276,7 @@ def main():
 
         st.dataframe(
             pct[["Course Code", "Course Name"] + labels + ["Total"]],
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
         )
 
@@ -418,7 +418,7 @@ def main():
 
             st.dataframe(
                 pivot_display[["Student ID", "Name"] + terms_order + ["Overall Trend"]],
-                use_container_width=True,
+                width='stretch',
                 hide_index=True,
             )
 
@@ -547,7 +547,7 @@ def main():
         show["Difficulty Level"] = show["Difficulty Level"].astype(lvl_order)
         show = show.sort_values(["Difficulty Level", "Fail Rate (%)"], ascending=[True, False]).reset_index(drop=True)
 
-        st.dataframe(show, use_container_width=True)
+        st.dataframe(show, width='stretch')
 
 
     # ─────────────────────────────────────
@@ -644,7 +644,7 @@ def main():
                     fac_name = current_scope["teacher_email"].dropna().iloc[0]
 
                 st.markdown(f"**Faculty Name:** {fac_name if fac_name else '—'}")
-                st.dataframe(show, use_container_width=True)
+                st.dataframe(show, width='stretch')
 
     # ─────────────────────────────────────
     # 5. Grade Submission Status
@@ -707,7 +707,7 @@ def main():
         show_display = show.copy()
         show_display["Submission Rate"] = show_display["Submission Rate"].astype(int).astype(str) + "%"
 
-        st.dataframe(show_display, use_container_width=True)
+        st.dataframe(show_display, width='stretch')
 
 
     # ─────────────────────────────────────
@@ -805,7 +805,7 @@ def main():
                     .sort_values(["Course Code", "Name"], na_position="last")
                 )
 
-                st.dataframe(res, use_container_width=True, hide_index=True)
+                st.dataframe(res, width='stretch', hide_index=True)
                 st.caption(f"{len(res)} result(s)")
 
     # ─────────────────────────────────────
@@ -893,7 +893,7 @@ def main():
                 out = out.sort_values(["Pass/Fail", "Student Name"], ascending=[True, True], na_position="last")
 
                 st.markdown("**Student Grades**")
-                st.dataframe(out, use_container_width=True, hide_index=True)
+                st.dataframe(out, width='stretch', hide_index=True)
 
 
 if __name__ == "__main__":

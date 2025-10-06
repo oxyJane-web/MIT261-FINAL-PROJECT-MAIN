@@ -87,8 +87,8 @@ def render_login():
                     _rerun()
         with c2:
             if st.button("Create Admin", use_container_width=True):
-                ensure_default_admin("admin@su.edu", password="Admin@1234", reset_password=True)
-                st.success("✅ Default Admin ready: **admin@su.edu / Admin@1234**")
+                ensure_default_admin("admin@su.edu", password="Admin1234", reset_password=True)
+                st.success("✅ Default Admin ready: **admin@su.edu / Admin1234**")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------- Dashboard ----------

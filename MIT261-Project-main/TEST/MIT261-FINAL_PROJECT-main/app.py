@@ -1,6 +1,6 @@
 # app.py — MIT261 Student Analytics (entry)
 from __future__ import annotations
-import streamlit as st
+import streamlit as st  # pyright: ignore[reportMissingImports]
 
 # ── Page config MUST be the first Streamlit call
 st.set_page_config(
@@ -85,7 +85,7 @@ def render_sidebar_footer(user: dict) -> None:
                  </div>""",
             unsafe_allow_html=True,
         )
-        if st.container().button("Log out", type="secondary", use_container_width=True, key="logout_btn"):
+        if st.container().button("Log out", type="secondary", width='stretch', key="logout_btn"):
             sign_out()
             _rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -104,7 +104,7 @@ def render_login():
         pw = st.text_input("Password", type="password", placeholder="••••••••", key="login_pw")
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("Login", type="primary", use_container_width=True):
+            if st.button("Login", type="primary", width='stretch'):
                 u = verify_login(email, pw)
                 if not u:
                     st.error("Invalid credentials.")
@@ -112,25 +112,25 @@ def render_login():
                     set_current_user(u)
                     _rerun()
         with c2:
-            if st.button("Create default admin", use_container_width=True):
+            if st.button("Create default admin", width='stretch'):
                 ensure_default_admin("admin@su.edu", password="Admin@1234", reset_password=True)
                 st.success("Created/updated: **admin@su.edu / Admin@1234**")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with col2:
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
-        st.markdown("**Quick tools**")
-        st.markdown("<div class='muted'>Import accounts from existing collections.</div>", unsafe_allow_html=True)
-        a, b = st.columns(2)
-        with a:
-            if st.button("Import Teachers ➜ Users", use_container_width=True):
-                _, scanned, inserted = import_from_collection("teachers", "faculty", "email", "name")
-                st.success(f"Imported {inserted} of {scanned}.")
-        with b:
-            if st.button("Import Students ➜ Users", use_container_width=True):
-                _, scanned, inserted = import_from_collection("students", "student", "email", "Name")
-                st.success(f"Imported {inserted} of {scanned}.")
-        st.markdown("</div>", unsafe_allow_html=True)
+    # with col2:
+    #     st.markdown('<div class="login-card">', unsafe_allow_html=True)
+    #     st.markdown("**Quick tools**")
+    #     st.markdown("<div class='muted'>Import accounts from existing collections.</div>", unsafe_allow_html=True)
+    #     a, b = st.columns(2)
+    #     with a:
+    #         if st.button("Import Teachers ➜ Users", width='stretch'):
+    #             _, scanned, inserted = import_from_collection("teachers", "faculty", "email", "name")
+    #             st.success(f"Imported {inserted} of {scanned}.")
+    #     with b:
+    #         if st.button("Import Students ➜ Users", width='stretch'):
+    #             _, scanned, inserted = import_from_collection("students", "student", "email", "Name")
+    #             st.success(f"Imported {inserted} of {scanned}.")
+    #     st.markdown("</div>", unsafe_allow_html=True)
 
 def main():
     user = get_current_user() or current_user()

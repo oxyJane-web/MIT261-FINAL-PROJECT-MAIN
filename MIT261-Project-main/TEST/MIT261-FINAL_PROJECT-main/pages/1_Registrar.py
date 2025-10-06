@@ -2,10 +2,10 @@
 import re
 from typing import List, Tuple, Optional
 
-import numpy as np
-import pandas as pd
-import streamlit as st
-import matplotlib.pyplot as plt
+import numpy as np  # pyright: ignore[reportMissingImports]
+import pandas as pd  # pyright: ignore[reportMissingImports]
+import streamlit as st  # pyright: ignore[reportMissingImports]
+import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 from db import col  # uses your existing db.py helper
 
@@ -136,13 +136,13 @@ def load_enrollments_df(
         "subject.code": 1,
         "subject.title": 1,
         "subject.department": 1,     # if not present in docs it's fine (becomes NaN)
-        "grade": 1,                # original grade text/number
-        "remark": 1,               # INC/DROPPED/etc
+        "term.grade": 1,           # grade is stored in term.grade
+        "term.remark": 1,          # remark is stored in term.remark
         "teacher.name": 1,
         "teacher.email": 1,
         "term.school_year": 1,
         "term.semester": 1,
-        "section": 1,
+        "term.section": 1,
     }
 
     # Build a naive filter for terms if provided (OR over each term)
@@ -174,10 +174,13 @@ def load_enrollments_df(
         "subject.code": "subject_code",
         "subject.title": "subject_title",
         "subject.department": "department",
+        "term.grade": "grade",
+        "term.remark": "remark",
         "teacher.name": "teacher_name",
         "teacher.email": "teacher_email",
         "term.school_year": "school_year",
         "term.semester": "semester",
+        "term.section": "section",
     })
 
     # Program display string
@@ -236,9 +239,22 @@ def render_gpa_reports(df: pd.DataFrame):
     st.subheader("GPA Reports")
     if df.empty:
         _empty_state("No rows for the current filters.")
+        return
+    
+    # Check if grade column exists and has valid data
+    if "grade" not in df.columns or df["grade"].isna().all():
+        st.warning("No grade data available for GPA reports.")
+        return
+    
+    # Filter out NaN values for histogram
+    valid_grades = df["grade"].dropna()
+    if valid_grades.empty:
+        st.warning("No valid grade data available for GPA reports.")
+        return
+    
     # Histogram
     fig, ax = plt.subplots(figsize=(8, 3))
-    ax.hist(df["grade"].astype(float), bins=20)
+    ax.hist(valid_grades, bins=20)
     ax.set_xlabel("GPA")
     ax.set_ylabel("Students")
     st.pyplot(fig, clear_figure=True)
@@ -250,7 +266,7 @@ def render_gpa_reports(df: pd.DataFrame):
         .sort_values("GPA", ascending=False)
     )
     out["GPA"] = out["GPA"].round(2)
-    st.dataframe(out, use_container_width=True)
+    st.dataframe(out, width='stretch')
 
 
 def render_deans_list(df: pd.DataFrame, min_gpa: float):
@@ -277,7 +293,7 @@ def render_deans_list(df: pd.DataFrame, min_gpa: float):
     else:
         st.info("No students met the Dean’s List threshold.")
         return
-    st.dataframe(per, use_container_width=True)
+    st.dataframe(per, width='stretch')
 
 
 # -----------------------------
@@ -331,7 +347,7 @@ def render_probation(
 
     st.dataframe(
         res.rename(columns={"Subjects": "Subjects"}),
-        use_container_width=True
+        width='stretch'
     )
 
 
@@ -352,7 +368,7 @@ def render_subject_pass_fail(df: pd.DataFrame, pass_cutoff: float = 75.0):
     show = agg[
         ["subject_code", "subject_title", "term_label", "pass_count", "fail_count", "pass_%", "fail_%"]
     ].rename(columns={"subject_title": "Subject Name", "term_label": "Semester", "pass_%": "Pass %", "fail_%": "Fail %"})
-    st.dataframe(show, use_container_width=True)
+    st.dataframe(show, width='stretch')
 
 
 def render_enrollment_analysis(df: pd.DataFrame):
@@ -434,7 +450,7 @@ def render_enrollment_analysis(df: pd.DataFrame):
         lambda v: (f"{v:.0f}%" if pd.notna(v) else "—")
     )
 
-    st.dataframe(out, use_container_width=True)
+    st.dataframe(out, width='stretch')
 
 
 # (Your updated incomplete grades logic kept as before)
@@ -475,7 +491,7 @@ def render_incomplete_grades(df: pd.DataFrame):
         key=lambda s: _sort_key_for_series_of_term_labels(s) if s.name == "term_label" else s
     )
 
-    st.dataframe(show, use_container_width=True, height=min(600, 38 + 28 * len(show)))
+    st.dataframe(show, width='stretch', height=min(600, 38 + 28 * len(show)))
 
 
 def render_retention_dropout(df: pd.DataFrame):
@@ -500,7 +516,7 @@ def render_retention_dropout(df: pd.DataFrame):
         else:
             retain = np.nan
         data.append({"term_label": t, "students": len(cur), "retention_to_next_term_%": round(retain, 2)})
-    st.dataframe(pd.DataFrame(data), use_container_width=True)
+    st.dataframe(pd.DataFrame(data), width='stretch')
 
 
 def render_top_performers_per_program(df: pd.DataFrame, topn: int = 10):
@@ -518,7 +534,7 @@ def render_top_performers_per_program(df: pd.DataFrame, topn: int = 10):
         .head(topn)
         .reset_index(drop=True)
     )
-    st.dataframe(out, use_container_width=True)
+    st.dataframe(out, width='stretch')
 
 
 # -----------------------------
@@ -563,7 +579,7 @@ def render_failed_students_by_subject(df: pd.DataFrame, passing: float = 75.0) -
         by=["term_label", "subject_code", "student_name"],
         key=lambda s: _sort_key_for_series_of_term_labels(s) if s.name == "term_label" else s,
     )
-    st.dataframe(fails, use_container_width=True, height=min(600, 38 + 28 * len(fails)))
+    st.dataframe(fails, width='stretch', height=min(600, 38 + 28 * len(fails)))
 
 
 # -----------------------------
@@ -651,11 +667,11 @@ def _load_all_enrollments_for_student(student_no: Optional[str], email: Optional
         "program.program_name": 1,
         "subject.code": 1,
         "subject.title": 1,
-        "grade": 1,
-        "remark": 1,
+        "term.grade": 1,
+        "term.remark": 1,
         "term.school_year": 1,
         "term.semester": 1,
-        "section": 1,
+        "term.section": 1,
         "teacher.name": 1,
     }
     rows = list(col("enrollments").find(filt, fields))
@@ -671,13 +687,20 @@ def _load_all_enrollments_for_student(student_no: Optional[str], email: Optional
             "program.program_name": "program_name",
             "subject.code": "subject_code",
             "subject.title": "subject_title",
+            "term.grade": "grade",
+            "term.remark": "remark",
             "term.school_year": "school_year",
             "term.semester": "semester",
+            "term.section": "section",
             "teacher.name": "teacher_name",
         }
     )
     df["term_label"] = df.apply(lambda r: _term_label(r.get("school_year"), r.get("semester")), axis=1)
-    df["grade"] = pd.to_numeric(df["grade"], errors="coerce")
+    # Handle grade column safely
+    if "grade" in df.columns:
+        df["grade"] = pd.to_numeric(df["grade"], errors="coerce")
+    else:
+        df["grade"] = pd.Series([], dtype=float)
     return df
 
 
@@ -750,7 +773,7 @@ def render_curriculum_progress_advising() -> None:
                 by=["Term", "Code"],
                 key=lambda s: _sort_key_for_series_of_term_labels(s) if s.name == "Term" else s,
             ),
-            use_container_width=True,
+            width='stretch',
             height=min(640, 38 + 28 * len(stud_df)),
         )
         return
@@ -845,7 +868,7 @@ def render_curriculum_progress_advising() -> None:
             )
             st.dataframe(
                 view,
-                use_container_width=True,
+                width='stretch',
                 height=min(420, 38 + 28 * len(view)),
             )
 

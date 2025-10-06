@@ -166,8 +166,8 @@ def load_enrollments_df(student_email: Optional[str] = None,
         q["teacher.email"] = restrict_teacher_email.strip().lower()
 
     proj = {
-        "grade": 1,
-        "remark": 1,
+        "term.grade": 1,
+        "term.remark": 1,
         "term.school_year": 1,
         "term.semester": 1,
         "student.name": 1,
@@ -178,7 +178,7 @@ def load_enrollments_df(student_email: Optional[str] = None,
         "teacher.email": 1,
         "teacher.name": 1,
         "program.program_code": 1,
-        "section": 1,
+        "term.section": 1,
     }
 
     rows = list(col("enrollments").find(q, proj))
@@ -204,13 +204,13 @@ def load_enrollments_df(student_email: Optional[str] = None,
             "student_email": (stu.get("email") or "").strip().lower(),
             "subject_code": sub.get("code"),
             "subject_title": sub.get("title"),
-            "grade": _to_num_grade(e.get("grade")),
-            "remark": e.get("remark"),
+            "grade": _to_num_grade(term.get("grade")),
+            "remark": term.get("remark"),
             "term_label": _term_label(term.get("school_year"), term.get("semester")),
             "teacher_email": (tch.get("email") or "").strip().lower(),
             "teacher_name": tch.get("name"),
             "program_code": prog.get("program_code"),
-            "section": e.get("section"),
+            "section": term.get("section"),
         }
 
     df = pd.DataFrame([flatten(r) for r in rows])
@@ -684,7 +684,7 @@ def main():
                 header_right = (df["student_name"].dropna().iloc[0] if not df["student_name"].dropna().empty else "—")
                 st.markdown(f"**Student:** {header_left} – {header_right}")
 
-                st.dataframe(show, use_container_width=True)
+                st.dataframe(show, width='stretch')
 
     # ----------------------------
     # 4. Comparison with Class Average  (scoped to student's section & term per subject)
@@ -819,7 +819,7 @@ def main():
                 header_right = (df["student_name"].dropna().iloc[0] if not df["student_name"].dropna().empty else "—")
                 st.markdown(f"**Student:** {header_left} – {header_right}")
 
-                st.dataframe(show, use_container_width=True)
+                st.dataframe(show, width='stretch')
 
                 st.markdown(
                     "<strong>Description:</strong> Highlights how the student’s performance stacks up against peers.",
@@ -920,7 +920,7 @@ def main():
             ["Total Required Subjects", total_required, 100.0 if total_required > 0 else 0.0, "Total courses in the curriculum"],
         ]
         out_df = pd.DataFrame(rows, columns=["Category", "Count", "Percentage (%)", "Description"])
-        st.dataframe(out_df, use_container_width=True)
+        st.dataframe(out_df, width='stretch')
 
         st.markdown(
             "<strong>Description:</strong> A simple summary of academic outcomes—ideal for pie or bar chart depiction.",
@@ -1028,7 +1028,7 @@ def main():
                 "Subject Code": "", "Description": "Total Units",
                 "Units": total_units, "Final Grade": gpa, "Instructor": ""
             }])
-            st.dataframe(pd.concat([show, totals], ignore_index=True), use_container_width=True)
+            st.dataframe(pd.concat([show, totals], ignore_index=True), width='stretch')
             st.markdown(
                 f"**Semester GPA:** <span style='color:#1f5cff;font-weight:700'>{gpa if gpa is not None else '—'}</span>",
                 unsafe_allow_html=True

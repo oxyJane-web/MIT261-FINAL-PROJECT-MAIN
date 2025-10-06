@@ -1,12 +1,11 @@
 # pages/1_Registrar.py
 import re
-from traceback import clear_frames
 from typing import List, Tuple, Optional
 
-import numpy as np
-import pandas as pd
-import streamlit as st
-import matplotlib.pyplot as plt
+import numpy as np  # pyright: ignore[reportMissingImports]
+import pandas as pd  # pyright: ignore[reportMissingImports]
+import streamlit as st  # pyright: ignore[reportMissingImports]
+import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
 
 from db import col  # uses your existing db.py helper
 
@@ -37,7 +36,7 @@ def _user_header(u: dict | None):
 
 
 from utils.auth import require_role
-user = require_role("registrar", "Admin")   # only registrar/admin may open
+user = require_role("registrar", "admin")   # only registrar/admin may open
 # -----------------------------
 # Small helpers (robust parsing)
 # -----------------------------
@@ -96,7 +95,7 @@ def _sort_key_for_series_of_term_labels(s: pd.Series):
 def load_distinct_terms() -> List[str]:
     fields = {"term.school_year": 1, "term.semester": 1, "_id": 0}
     terms = []
-    for r in col("enrollment").find({}, fields):
+    for r in col("enrollments").find({}, fields):
         sy = r.get("term", {}).get("school_year")
         sem = r.get("term", {}).get("semester")
         lbl = _term_label(sy, sem)
@@ -117,7 +116,7 @@ def _to_regex(s: str) -> Optional[re.Pattern]:
 
 
 @st.cache_data(show_spinner=True, ttl=300)
-def load_enrollment_df(
+def load_enrollments_df(
     selected_terms: Tuple[str, ...],
     subject_regex_str: str,
     dept_regex_str: str,
@@ -137,13 +136,13 @@ def load_enrollment_df(
         "subject.code": 1,
         "subject.title": 1,
         "subject.department": 1,     # if not present in docs it's fine (becomes NaN)
-        "grade": 1,                # original grade text/number
-        "remark": 1,               # INC/DROPPED/etc
+        "term.grade": 1,           # grade is stored in term.grade
+        "term.remark": 1,          # remark is stored in term.remark
         "teacher.name": 1,
         "teacher.email": 1,
         "term.school_year": 1,
         "term.semester": 1,
-        "section": 1,
+        "term.section": 1,
     }
 
     # Build a naive filter for terms if provided (OR over each term)
@@ -157,7 +156,7 @@ def load_enrollment_df(
         if ors:
             mongo_filter["$or"] = ors
 
-    rows = list(col("enrollment").find(mongo_filter, fields))
+    rows = list(col("enrollments").find(mongo_filter, fields))
     if not rows:
         return pd.DataFrame(columns=[
             "student_no","student_name","program",
@@ -175,10 +174,13 @@ def load_enrollment_df(
         "subject.code": "subject_code",
         "subject.title": "subject_title",
         "subject.department": "department",
+        "term.grade": "grade",
+        "term.remark": "remark",
         "teacher.name": "teacher_name",
         "teacher.email": "teacher_email",
         "term.school_year": "school_year",
         "term.semester": "semester",
+        "term.section": "section",
     })
 
     # Program display string
@@ -237,10 +239,22 @@ def render_gpa_reports(df: pd.DataFrame):
     st.subheader("GPA Reports")
     if df.empty:
         _empty_state("No rows for the current filters.")
-
+        return
+    
+    # Check if grade column exists and has valid data
+    if "grade" not in df.columns or df["grade"].isna().all():
+        st.warning("No grade data available for GPA reports.")
+        return
+    
+    # Filter out NaN values for histogram
+    valid_grades = df["grade"].dropna()
+    if valid_grades.empty:
+        st.warning("No valid grade data available for GPA reports.")
+        return
+    
     # Histogram
     fig, ax = plt.subplots(figsize=(8, 3))
-    ax.hist(df["grade"].astype(float), bins=20)
+    ax.hist(valid_grades, bins=20)
     ax.set_xlabel("GPA")
     ax.set_ylabel("Students")
     st.pyplot(fig, clear_figure=True)
@@ -252,17 +266,7 @@ def render_gpa_reports(df: pd.DataFrame):
         .sort_values("GPA", ascending=False)
     )
     out["GPA"] = out["GPA"].round(2)
-    st.dataframe(out, use_container_width=True)
-
-
-    # Plot histogram only if we have valid grades
-    fig, ax = plt.subplots()
-    ax.hist(clear_frames, bins=20, color="pink", edgecolor="black")
-    ax.set_title("Grade Distribution")
-    ax.set_xlabel("Grade")
-    ax.set_ylabel("Frequency")
-
-    st.pyplot(fig)
+    st.dataframe(out, width='stretch')
 
 
 def render_deans_list(df: pd.DataFrame, min_gpa: float):
@@ -289,7 +293,7 @@ def render_deans_list(df: pd.DataFrame, min_gpa: float):
     else:
         st.info("No students met the Dean’s List threshold.")
         return
-    st.dataframe(per, use_container_width=True)
+    st.dataframe(per, width='stretch')
 
 
 # -----------------------------
@@ -343,7 +347,7 @@ def render_probation(
 
     st.dataframe(
         res.rename(columns={"Subjects": "Subjects"}),
-        use_container_width=True
+        width='stretch'
     )
 
 
@@ -364,7 +368,7 @@ def render_subject_pass_fail(df: pd.DataFrame, pass_cutoff: float = 75.0):
     show = agg[
         ["subject_code", "subject_title", "term_label", "pass_count", "fail_count", "pass_%", "fail_%"]
     ].rename(columns={"subject_title": "Subject Name", "term_label": "Semester", "pass_%": "Pass %", "fail_%": "Fail %"})
-    st.dataframe(show, use_container_width=True)
+    st.dataframe(show, width='stretch')
 
 
 def render_enrollment_analysis(df: pd.DataFrame):
@@ -446,7 +450,7 @@ def render_enrollment_analysis(df: pd.DataFrame):
         lambda v: (f"{v:.0f}%" if pd.notna(v) else "—")
     )
 
-    st.dataframe(out, use_container_width=True)
+    st.dataframe(out, width='stretch')
 
 
 # (Your updated incomplete grades logic kept as before)
@@ -487,7 +491,7 @@ def render_incomplete_grades(df: pd.DataFrame):
         key=lambda s: _sort_key_for_series_of_term_labels(s) if s.name == "term_label" else s
     )
 
-    st.dataframe(show, use_container_width=True, height=min(600, 38 + 28 * len(show)))
+    st.dataframe(show, width='stretch', height=min(600, 38 + 28 * len(show)))
 
 
 def render_retention_dropout(df: pd.DataFrame):
@@ -512,7 +516,7 @@ def render_retention_dropout(df: pd.DataFrame):
         else:
             retain = np.nan
         data.append({"term_label": t, "students": len(cur), "retention_to_next_term_%": round(retain, 2)})
-    st.dataframe(pd.DataFrame(data), use_container_width=True)
+    st.dataframe(pd.DataFrame(data), width='stretch')
 
 
 def render_top_performers_per_program(df: pd.DataFrame, topn: int = 10):
@@ -530,7 +534,7 @@ def render_top_performers_per_program(df: pd.DataFrame, topn: int = 10):
         .head(topn)
         .reset_index(drop=True)
     )
-    st.dataframe(out, use_container_width=True)
+    st.dataframe(out, width='stretch')
 
 
 # -----------------------------
@@ -575,7 +579,7 @@ def render_failed_students_by_subject(df: pd.DataFrame, passing: float = 75.0) -
         by=["term_label", "subject_code", "student_name"],
         key=lambda s: _sort_key_for_series_of_term_labels(s) if s.name == "term_label" else s,
     )
-    st.dataframe(fails, use_container_width=True, height=min(600, 38 + 28 * len(fails)))
+    st.dataframe(fails, width='stretch', height=min(600, 38 + 28 * len(fails)))
 
 
 # -----------------------------
@@ -596,7 +600,7 @@ def _load_program_codes_from_curricula() -> List[str]:
 
     # fallback: distinct program.program_code in enrollments
     try:
-        codes = col("enrollment").distinct("program.program_code")
+        codes = col("enrollments").distinct("program.program_code")
         return sorted([_safe_str(x) for x in codes if _safe_str(x)])
     except Exception:
         return []
@@ -613,7 +617,7 @@ def _find_curriculum_doc(course_code: str) -> Optional[dict]:
     return None
 
 
-def _load_students_master(email_or_id: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
+def _load_student_master(email_or_id: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Returns (student_no, name, email) by checking 'students' then enrollments.
     """
@@ -623,73 +627,80 @@ def _load_students_master(email_or_id: str) -> tuple[Optional[str], Optional[str
 
     # try 'students' collection
     try:
-        q = {"$or": [{"Student_id": key}, {"email": key}]}
+        q = {"$or": [{"student_no": key}, {"email": key}]}
         sdoc = col("students").find_one(q)
         if sdoc:
-            return _safe_str(sdoc.get("Student_id")), _safe_str(sdoc.get("name")), _safe_str(sdoc.get("email"))
+            return _safe_str(sdoc.get("student_no")), _safe_str(sdoc.get("name")), _safe_str(sdoc.get("email"))
     except Exception:
         pass
 
     # fallback: look up by enrollments
     try:
-        doc = col("enrollment").find_one(
-            {"$or": [{"students.Student_id": key}, {"student.email": key}]},
-            {"students.Student_id": 1, "student.name": 1, "student.email": 1, "_id": 0},
+        doc = col("enrollments").find_one(
+            {"$or": [{"student.student_no": key}, {"student.email": key}]},
+            {"student.student_no": 1, "student.name": 1, "student.email": 1, "_id": 0},
         )
         if doc:
-            s = doc.get("students", {})
-            return _safe_str(s.get("Student_id")), _safe_str(s.get("name")), _safe_str(s.get("email"))
+            s = doc.get("student", {})
+            return _safe_str(s.get("student_no")), _safe_str(s.get("name")), _safe_str(s.get("email"))
     except Exception:
         pass
 
     return None, None, None
 
 
-def _load_all_enrollment_for_students(Student_id: Optional[str], email: Optional[str]) -> pd.DataFrame:
+def _load_all_enrollments_for_student(student_no: Optional[str], email: Optional[str]) -> pd.DataFrame:
     filt = {}
-    if Student_id:
-        filt = {"students.Student_id": Student_id}
+    if student_no:
+        filt = {"student.student_no": student_no}
     elif email:
-        filt = {"students.email": email}
+        filt = {"student.email": email}
     else:
         return pd.DataFrame()
 
     fields = {
         "_id": 0,
-        "students.Student_id": 1,
-        "students.name": 1,
-        "students.email": 1,
+        "student.student_no": 1,
+        "student.name": 1,
+        "student.email": 1,
         "program.program_code": 1,
         "program.program_name": 1,
         "subject.code": 1,
         "subject.title": 1,
-        "grade": 1,
-        "remark": 1,
+        "term.grade": 1,
+        "term.remark": 1,
         "term.school_year": 1,
         "term.semester": 1,
-        "section": 1,
+        "term.section": 1,
         "teacher.name": 1,
     }
-    rows = list(col("enrollment").find(filt, fields))
+    rows = list(col("enrollments").find(filt, fields))
     if not rows:
         return pd.DataFrame()
 
     df = pd.json_normalize(rows).rename(
         columns={
-            "student.Student_id": "Student_id",
+            "student.student_no": "student_no",
             "student.name": "student_name",
             "student.email": "student_email",
             "program.program_code": "program_code",
             "program.program_name": "program_name",
             "subject.code": "subject_code",
             "subject.title": "subject_title",
+            "term.grade": "grade",
+            "term.remark": "remark",
             "term.school_year": "school_year",
             "term.semester": "semester",
+            "term.section": "section",
             "teacher.name": "teacher_name",
         }
     )
     df["term_label"] = df.apply(lambda r: _term_label(r.get("school_year"), r.get("semester")), axis=1)
-    df["grade"] = pd.to_numeric(df["grade"], errors="coerce")
+    # Handle grade column safely
+    if "grade" in df.columns:
+        df["grade"] = pd.to_numeric(df["grade"], errors="coerce")
+    else:
+        df["grade"] = pd.Series([], dtype=float)
     return df
 
 
@@ -710,16 +721,16 @@ def render_curriculum_progress_advising() -> None:
         return
 
     if not student_key.strip():
-        st.warning("Please enter a student ID number or email.")
+        st.warning("Please enter a student number or email.")
         return
 
     # Resolve student master and fetch enrollments across all terms
-    Student_id, Name, Email = _load_students_master(student_key)
-    if not (Student_id or Email):
+    student_no, student_name, student_email = _load_student_master(student_key)
+    if not (student_no or student_email):
         st.error("Student not found in 'students' or 'enrollments'.")
         return
 
-    stud_df = _load_all_enrollment_for_students(Student_id, Email)
+    stud_df = _load_all_enrollments_for_student(student_no, student_email)
     curri = _find_curriculum_doc(sel_course)
 
     # Student Info
@@ -727,9 +738,9 @@ def render_curriculum_progress_advising() -> None:
         st.markdown(
             f"""
             **Student Information**  
-            • **Name:** {Name or '—'}  
-            • **Student No.:** {Student_id or '—'}  
-            • **Email:** {Email or '—'}  
+            • **Name:** {student_name or '—'}  
+            • **Student No.:** {student_no or '—'}  
+            • **Email:** {student_email or '—'}  
             • **Course:** {sel_course}
             """
         )
@@ -762,7 +773,7 @@ def render_curriculum_progress_advising() -> None:
                 by=["Term", "Code"],
                 key=lambda s: _sort_key_for_series_of_term_labels(s) if s.name == "Term" else s,
             ),
-            use_container_width=True,
+            width='stretch',
             height=min(640, 38 + 28 * len(stud_df)),
         )
         return
@@ -857,7 +868,7 @@ def render_curriculum_progress_advising() -> None:
             )
             st.dataframe(
                 view,
-                use_container_width=True,
+                width='stretch',
                 height=min(420, 38 + 28 * len(view)),
             )
 
@@ -907,7 +918,7 @@ def main():
     with col_cb3:
         show_prob = st.checkbox("Probation", value=False)
 
-    gen1 = st.button("Apply & Generate", type="primary")
+    gen1 = st.button("Apply filters & generate", type="primary")
 
     # --- Other Reports ---
     st.markdown("### Other Reports / Views")
@@ -928,7 +939,7 @@ def main():
 
     # Load enrollments only when needed
     if gen1 or gen2:
-        df = load_enrollment_df(tuple(sel_terms), subj_regex, dept_regex)
+        df = load_enrollments_df(tuple(sel_terms), subj_regex, dept_regex)
     else:
         df = None  # r7-only path
 
