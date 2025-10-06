@@ -104,7 +104,7 @@ def render_login():
         pw = st.text_input("Password", type="password", placeholder="••••••••", key="login_pw")
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("Login", type="primary", width='stretch'):
+            if st.button("Login", type="primary", use_container_width=True):
                 u = verify_login(email, pw)
                 if not u:
                     st.error("Invalid credentials.")
