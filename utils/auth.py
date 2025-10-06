@@ -1,14 +1,14 @@
 import streamlit as st
 
 def verify_login(username: str, password: str) -> bool:
-    if username == "admin" and password == "admin123":
+    if username == "Admin" and password == "Admin@1234":
         set_current_user({"username": username, "role": "admin"})
         return True
     return False
 
 def ensure_default_admin():
     if "users" not in st.session_state:
-        st.session_state["users"] = [{"username": "admin", "password": "admin123"}]
+        st.session_state["users"] = [{"username": "Admin", "password": "Admin@1234"}]
 
 def set_current_user(user: dict):
     st.session_state["current_user"] = user
@@ -23,3 +23,4 @@ def current_user():
 def sign_out():
     if "current_user" in st.session_state:
         del st.session_state["current_user"]
+
